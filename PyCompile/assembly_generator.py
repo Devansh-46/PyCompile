@@ -4,7 +4,8 @@ class AssemblyGenerator:
         for ir_node in ir_nodes:
             assembly_code.extend(self.visit(ir_node))
         return '\n'.join(assembly_code)
-
+    
+    
     def visit(self, ir_node):
         method_name = f'visit_{ir_node.type}'
         visitor = getattr(self, method_name, self.generic_visit)

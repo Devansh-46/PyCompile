@@ -5,6 +5,8 @@ class Interpreter:
         self.memory = {}
         self.instruction_pointer = 0
         self.labels = self.find_labels()
+        self.instruction_pointer = self.find_instruction_pointer()
+
 
     def find_labels(self):
         labels = {}
@@ -12,12 +14,21 @@ class Interpreter:
             if instruction.endswith(':'):
                 labels[instruction[:-1]] = i
         return labels
+    
+    def find_instruction_pointer(self):
+        for i, instruction in enumerate(self.instructions):
+            if instruction.endswith(':'):
+                continue
+            else:
+                return i
+        
 
     def run(self):
         while self.instruction_pointer < len(self.instructions):
             instruction = self.instructions[self.instruction_pointer]
             self.execute(instruction)
             self.instruction_pointer += 1
+        
 
     def execute(self, instruction):
         parts = instruction.strip().split()
@@ -54,6 +65,7 @@ class Interpreter:
             exit(0)
         else:
             pass
+    
 
 # Example usage
 # instructions = [

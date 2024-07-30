@@ -1,103 +1,100 @@
-# lexer.py
-
-from mytoken import Token
+import ply.lex as lex
 
 class Lexer:
-    def __init__(self, input_code):
-        self.input_code = input_code
-        self.tokens = []
-        self.current_position = 0
+    tokens = (
+        'NUMBER', 'IDENTIFIER', 'ASSIGN', 'PLUS', 'MINUS', 'MUL', 'DIV',
+        'LPAREN', 'RPAREN', 'COLON', 'COMMA', 'LBRACE', 'RBRACE', 'END',
+        'EQ', 'LT', 'GT', 'LE', 'GE', 'NE', 'AND', 'OR', 'NOT', 'STRING', 'DEF', 
+        'IF', 'PRINT', 'ELSE', 'WHILE'
+    )
+    # Reserved words
+    reserved = {
+        'if': 'IF',
+        'else': 'ELSE',
+        'while': 'WHILE',
+        'print': 'PRINT',
+        'def': 'DEF',
+    }
+    # Regular expression rules for simple tokens
+    t_ASSIGN = r'='
+    t_PLUS = r'\+'
+    t_MINUS = r'-'
+    t_MUL = r'\*'
+    t_DIV = r'/'
+    t_LPAREN = r'\('
+    t_RPAREN = r'\)'
+    t_COLON = r':'
+    t_COMMA = r','
+    t_LBRACE = r'\{'
+    t_RBRACE = r'\}'
+    t_EQ = r'=='
+    t_LT = r'<'
+    t_GT = r'>'
+    t_LE = r'<='
+    t_GE = r'>='
+    t_NE = r'!='
+    t_AND = r'and'
+    t_OR = r'or'
+    t_NOT = r'not'
+    t_STRING = r'\"(?:[^\"\\]|\\.)*\"'
 
-    def tokenize(self):
-        while self.current_position < len(self.input_code):
-            current_char = self.input_code[self.current_position]
+    # Ignored characters (spaces and tabs)
+    t_ignore = ' \t'
 
-            if current_char.isspace():
-                self.current_position += 1
-            elif current_char.isdigit():
-                self.tokens.append(self.tokenize_number())
-            elif current_char.isalpha() or current_char == '_':
-                self.tokens.append(self.tokenize_identifier())
-            else:
-                try:
-                    self.tokens.append(self.tokenize_symbol())
-                except RuntimeError as e:
-                    raise LexerError(f"Unexpected character: {e}")
 
-        self.tokens.append(Token('EOF', 'EOF'))
-        return self.tokens
 
-    def tokenize_number(self):
-        start_position = self.current_position
-        while self.current_position < len(self.input_code) and self.input_code[self.current_position].isdigit():
-            self.current_position += 1
-        return Token('NUMBER', self.input_code[start_position:self.current_position])
 
-    def tokenize_identifier(self):
-        start_position = self.current_position
-        while self.current_position < len(self.input_code) and (self.input_code[self.current_position].isalnum() or self.input_code[self.current_position] == '_'):
-            self.current_position += 1
-        value = self.input_code[start_position:self.current_position]
-        if value in ('if', 'else', 'while', 'print', 'def'):
-            return Token(value.upper(), value)
-        return Token('IDENTIFIER', value)
 
-    def tokenize_symbol(self):
-        current_char = self.input_code[self.current_position]
-        self.current_position += 1
-        if current_char == '=':
-            if self.current_position < len(self.input_code) and self.input_code[self.current_position] == '=':
-                self.current_position += 1
-                return Token('EQ', '==')
-            return Token('ASSIGN', '=')
-        elif current_char == '+':
-            return Token('PLUS', '+')
-        elif current_char == '-':
-            return Token('MINUS', '-')
-        elif current_char == '*':
-            return Token('MUL', '*')
-        elif current_char == '/':
-            return Token('DIV', '/')
-        elif current_char == '(':
-            return Token('LPAREN', '(')
-        elif current_char == ')':
-            return Token('RPAREN', ')')
-        elif current_char == ':':
-            return Token('COLON', ':')
-        elif current_char == ',':
-            return Token('COMMA', ',')
-        elif current_char == '{':
-            return Token('LBRACE', '{')
-        elif current_char == '}':
-            return Token('RBRACE', '}')
-        elif current_char == '\n':
-            return Token('END', 'END')
-        else:
-            raise RuntimeError(f"Unexpected character: {current_char} at position {self.current_position}")
+    # Define a rule to handle identifiers and reserved words
+    def t_IDENTIFIER(self, t):
+        r'[a-zA-Z_][a-zA-Z_0-9]*'
+        t.type = self.reserved.get(t.value, 'IDENTIFIER')  # Check for reserved words
+        return t
 
-class LexerError(Exception):
-    def __init__(self, message, position=None):
-        self.message = message
-        self.position = position
-        super().__init__(message)
+    # Define a rule to handle numbers
+    def t_NUMBER(self, t):
+        r'\d+'
+        t.value = int(t.value)
+        return t
 
-    def __str__(self):
-        if self.position is not None:
-            return f"LexerError: {self.message} at position {self.position}"
-        return f"LexerError: {self.message}"
+    # Define a rule to handle newlines
+    def t_newline(self, t):
+        r'\n+'
+        t.lexer.lineno += len(t.value)
 
-    def __repr__(self):
-        return self.__str__()
+    # Error handling rule
+    def t_error(self, t):
+        print(f"Illegal character '{t.value[0]}'")
+        t.lexer.skip(1)
+
+    # Build the lexer
+    def build(self, **kwargs):
+        self.lexer = lex.lex(module=self, **kwargs)
+
+    # Tokenize the input code
+    def tokenize(self, code):
+        self.lexer.input(code)
+        tokens = []
+        while True:
+            tok = self.lexer.token()
+            if not tok:
+                break
+            tokens.append(tok)
+        return tokens
+    
 
 # if __name__ == "__main__":
-#     input_code = """
-#     x = 10
-#     if x == 5:
-#         print(x)
-#     else:
-#         print(0)
-#     """
-#     lexer = Lexer(input_code)
-#     tokens = lexer.tokenize()
+#     Test the lexer
+#     lexer = Lexer()
+#     lexer.build()
+#     input_code = '''
+#     def my_function():
+#         x = 10
+#         if x > 5:
+#             print(x)
+#         else:
+#             print(0)
+#     '''
+#     tokens = lexer.tokenize(input_code)
 #     for token in tokens:
 #         print(token)
